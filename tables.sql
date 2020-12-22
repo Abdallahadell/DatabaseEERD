@@ -14,3 +14,60 @@ CREATE TABLE UserMobileNumber(
     FOREIGN KEY (id) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
 )
 
+CREATE TABLE Course(
+    id INT PRIMARY KEY IDENTITY NOT NULL,
+    creditHours INT,
+    name VARCHAR(50),
+    courseDescription VARCHAR(100),
+    price DECIMAL,
+    content VARCHAR(100),
+    adminId int,
+    instructorId INT,
+    accepted BIT,
+    FOREIGN KEY(adminId) REFERENCES Admin ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY(instructorId) REFERENCES Instructor ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE CoursePrerequisiteCourse(
+    cid INT,
+    prerequisiteId INT,
+    PRIMARY KEY(cid, prerequisiteId),
+    FOREIGN KEY(cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY(prerequisiteId) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE,
+);
+
+CREATE TABLE Feedback(
+    cid INT,
+    number INT IDENTITY NOT NULL,
+    comments VARCHAR(100),
+    numberOfLikes INT,
+    sid INT,
+    PRIMARY KEY(number, cid),
+    FOREIGN KEY(cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY(sid) REFERENCES Student ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE Assignment(
+    cid INT,
+    number INT,
+    type VARCHAR(50) ,
+    fullGrade DECIMAL,
+    weight DECIMAL,
+    deadline DATETIME not null,
+    content VARCHAR(100),
+    PRIMARY KEY(cid, number, type),
+    FOREIGN KEY(cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE StudentTakeAssignment(
+    sid INT,
+    cid INT,
+    assignmentNumber INT,
+    assignentType VARCHAR(50),
+    grade DECIMAL,
+    PRIMARY KEY(sid, cid, assignmentNumber, assignentType, grade),
+    FOREIGN KEY(sid) REFERENCES Student ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY(cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY(assignmentNumber) REFERENCES Assignment(number) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY(assignmentType) REFERENCES Assignment(type) ON DELETE CASCADE ON UPDATE CASCADE
+);
