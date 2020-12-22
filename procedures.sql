@@ -286,3 +286,221 @@ BEGIN
     INSERT INTO StudentCertifyCourse(sid,cid,issueDate)
     VALUES(@sid, @cid, @issueDate)
 END;
+
+GO;
+CREATE PROC userLogin
+@ID INT,
+@password VARCHAR(20),
+@Success BIT OUTPUT,
+@Type INT OUTPUT
+AS
+IF EXISTS(
+    SELECT u.*
+    FROM Users u
+    WHERE u.id = @ID AND @password = u.password
+)
+BEGIN
+    SET @Success = 1
+    PRINT CONCAT('Success : ' , @Success)
+    IF EXISTS(
+        SELECT u.*
+        FROM Users u INNER JOIN Instructor i on u.id = i.id
+    )
+    BEGIN
+        SET @Type = 0
+        PRINT CONCAT('Type : ' , @Type)
+    END;
+    IF EXISTS(
+        SELECT u.*
+        FROM Users u INNER JOIN Admin a on u.id = a.id
+    )
+    BEGIN
+        SET @Type = 1
+        PRINT CONCAT('Type : ' , @Type)
+    END;
+    IF EXISTS(
+        SELECT u.*
+        FROM Users u INNER JOIN Student s on u.id = s.id
+    )
+    BEGIN
+        SET @Type = 2
+        PRINT CONCAT('Type : ' , @Type)
+    END;
+END;
+ELSE
+BEGIN
+    SET @Success = 0
+    PRINT CONCAT('Success : ' , @Success)
+    SET @Type = -1
+    PRINT CONCAT('Type : ' , @Type)
+END;
+
+GO;
+CREATE PROC addMobile
+@id INT,
+@mobile_number VARCHAR(20)
+AS
+INSERT INTO UserMobileNumber(id, mobileNumber)
+VALUES (@id, @mobile_number)
+
+GO;
+CREATE PROC viewMyProfile
+@id INT
+AS
+SELECT u.* , s.gpa
+FROM Student s INNER JOIN Users u ON s.id = u.id
+WHERE s.id = @id
+
+GO;
+CREATE PROC editMyProfile
+@id INT,
+@firstName VARCHAR(10),
+@lastName VARCHAR(10),
+@password VARCHAR(10),
+@gender BINARY,
+@email VARCHAR(10),
+@address VARCHAR(10)
+AS
+UPDATE Users
+SET firstName = @firstName , lastName = @lastName , password = @password , gender = @gender , email = @email , address = @address
+WHERE id = @id;
+
+GO;
+CREATE PROC availableCourses
+AS
+SELECT name
+FROM Course
+WHERE accepted = 1;
+
+GO;
+CREATE PROC courseInformation
+@id INT
+AS
+SELECT c.* , u.firstName , u.lastName
+FROM Course c INNER JOIN Users u ON c.instructorId = u.id
+where id = @id
+
+GO;
+CREATE PROC enrollInCourse
+@sid INT,
+@cid INT,
+@instr INT
+AS
+INSERT INTO StudentTakeCourse(sid , cid , instId)
+VALUES (@sid , @cid , @instr)
+
+GO;
+CREATE PROC addCreditCard
+@sid INT,
+@number VARCHAR(15),
+@cardHolderName VARCHAR(16),
+@expiryDate DATETIME,
+@cvv VARCHAR(3)
+AS
+INSERT INTO CreditCard(number, cardHolderName, expiryDate, cvv)
+VALUES (@number , @cardHolderName , @expiryDate , @cvv)
+SET @sid = SCOPE_IDENTITY()
+INSERT INTO StudentAddCreditCard(sid , creditCardNumber)
+VALUES (@sid , @number)
+
+GO;
+CREATE PROC viewPromocode
+@sid INT
+AS
+SELECT p.*
+FROM Promocode p INNER JOIN StudentHasPromcode sp ON sp.code = p.code
+WHERE sp.sid = @sid
+
+GO;
+CREATE PROC payCourse
+@cid INT,
+@sid INT
+AS 
+UPDATE StudentTakeCourse
+SET payedfor = 1
+WHERE sid = @sid AND cid = @cid
+
+GO;
+CREATE PROC enrollInCourseViewContent
+@id INT,
+@cid INt
+AS
+IF EXISTS (
+    SELECT sid
+    FROM StudentTakeCourse
+    WHERE sid = @id AND cid = @cid
+)
+BEGIN
+    SELECT *
+    FROM Course
+    WHERE id = @cid
+END;
+
+GO;
+CREATE PROC viewAssign
+@courseId INT,
+@Sid VARCHAR(10)
+AS
+SELECT a.content
+FROM Assignment a INNER JOIN StudentTakeAssignment s on a.cid = s.cid
+WHERE a.cid = @courseId AND s.sid = @Sid
+
+GO;
+CREATE PROC submitAssign
+@assignType VARCHAR(10),
+@assignnumber INT,
+@sid INT,
+@cid INT
+AS
+INSERT INTO StudentTakeAssignment(sid , cid , assignmentNumber , assignmentType)
+VALUES (@sid , @cid , @assignnumber , @assignType)
+
+GO;
+CREATE PROC viewAssignGrades
+@assignnumber INT,
+@assignType VARCHAR(10),
+@cid INT,
+@sid INT,
+@assignGrade INT OUTPUT
+AS
+SELECT @assignGrade = grade
+FROM StudentTakeAssignment
+WHERE assignmentNumber = @assignnumber AND assignmentType = @assignType AND cid = @cid AND sid = @sid
+PRINT @assignGrade
+
+GO;
+CREATE PROC viewFinalGrade
+@cid INT,
+@sid INT,
+@finalgrade decimal(10,2) OUTPUT
+AS
+SELECT @finalgrade = grade
+FROM StudentTakeCourse
+WHERE cid = @cid AND sid = @sid
+
+GO;
+CREATE PROC addFeedback
+@comment varchar(100),
+@cid INT,
+@sid INT
+AS
+INSERT INTO Feedback(cid,comments,sid)
+VALUES (@cid , @comment , @sid)
+
+GO;
+CREATE PROC rateInstructor
+@rate DECIMAL(2,1),
+@sid INT,
+@insid INT
+AS
+INSERT INTO StudentRateInstructor(sid , instId , rate)
+VALUES (@sid , @insid , @rate)
+
+GO;
+CREATE PROC viewCertificate
+@cid INT,
+@sid INT
+AS
+SELECT *
+FROM StudentCertifyCourse
+WHERE sid = @sid AND cid = @cid
