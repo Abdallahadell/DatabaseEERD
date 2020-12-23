@@ -6,14 +6,13 @@ CREATE PROC studentRegister
     @gender BIT,
     @address VARCHAR(10)
     AS
-    INSERT INTO Users(first_name, last_name, password, gender, email, address)
+    INSERT INTO Users(firstName, lastName, password, gender, email, address)
     VALUES(@first_name, @last_name, @password, @gender, @email, @address)
     DECLARE @id INT
     SET @id = SCOPE_IDENTITY() 
     INSERT INTO Student(id)
     VALUES(@id)
-    
-GO;
+GO
 CREATE PROC InstructorRegister
     @first_name VARCHAR(20),
     @last_name VARCHAR(20),
@@ -22,7 +21,7 @@ CREATE PROC InstructorRegister
     @gender BIT,
     @address VARCHAR(10)
     AS
-    INSERT INTO Users(first_name, last_name, password, gender, email, address)
+    INSERT INTO Users(firstName, lastName, password, gender, email, address)
     VALUES(@first_name, @last_name, @password, @gender, @email, @address)
     DECLARE @id INT
     SET @id = SCOPE_IDENTITY() 
@@ -30,31 +29,33 @@ CREATE PROC InstructorRegister
     VALUES(@id)
     
 GO;
+
 CREATE PROC AdminListInstr
 AS
-SELECT *
-FROM Instructor
-ORDER BY firstName
+SELECT u.firstName,u.lastName
+FROM Users u INNER JOIN Instructor i ON u.id = i.id
+ORDER BY i.ID
 
 GO;
 CREATE PROC AdminViewInstructorProfile
 @instrId INT
 AS
-SELECT *
+SELECT u.firstName,u.lastName,u.gender,u.email,u.address,i.Rating
 FROM Users u INNER JOIN Instructor i ON u.id = i.id
 WHERE u.id = @instrId
 
 GO;
+
 CREATE PROC AdminViewAllCourses
 AS
-SELECT *
+SELECT name, creditHours,price,content,accepted
 FROM Course
 ORDER BY Course.name
 
 GO;
 CREATE PROC AdminViewNonAcceptedCourses
 AS
-SELECT *
+SELECT name,creditHours,price,content
 FROM Course c
 WHERE c.accepted <> 1
 
@@ -62,7 +63,7 @@ GO;
 CREATE PROC AdminViewCourseDetails
 @courseId INT
 AS
-SELECT *
+SELECT name, creditHours,price,content,accepted
 FROM Course
 WHERE id = @courseId
 
@@ -90,14 +91,15 @@ VALUES (@code, @issueDate, @expiryDate, @discount, @adminId)
 GO;
 CREATE PROC AdminListAllStudents
 AS
-SELECT *
+SELECT u.firstName,u.lastName
 FROM Users u INNER JOIN Student s ON s.id = u.id
 
 GO;
+
 CREATE PROC AdminViewStudentProfile
 @sid INT
 AS
-SELECT *
+SELECT u.firstName,u.lastName,u.gender,u.email,u.address,s.gpa
 FROM Users u INNER JOIN Student s ON u.id = s.id
 WHERE s.id = @sid
 
@@ -146,7 +148,7 @@ CREATE PROC InstructorViewAcceptedCoursesByAdmin
 AS
 SELECT *
 FROM Course
-WHERE instructorId = instrId And accepted = 1
+WHERE instructorId = @instrId And accepted = 1
 
 GO;
 CREATE PROC DefineCoursePrerequisites
@@ -154,7 +156,7 @@ CREATE PROC DefineCoursePrerequisites
 @prerequsiteId INT
 AS 
 INSERT INTO CoursePrerequisiteCourse(cid,prerequisiteId)
-VALUES(@cid,@prerequisiteId)
+VALUES(@cid,@prerequsiteId)
 
 GO;
 CREATE PROC DefineAssignmentOfCourseOfCertianType
@@ -197,7 +199,7 @@ AS
 IF EXISTS (
     SELECT *
     FROM Course
-    WHERE instructorId = @instId AND id = @cid
+    WHERE instructorId = @instrId AND id = @cid
 )
 BEGIN
     SELECT *
@@ -233,7 +235,7 @@ AS
 IF EXISTS(
     SELECT * 
     FROM Course
-    WHERE instructorId = @instrId AND cid = @cid 
+    WHERE instructorId = @instrId AND id = @cid 
     )
 BEGIN
     INSERT INTO StudentTakeAssignment(sid, cid, assignmentNumber, assignmentType, grade)
@@ -247,7 +249,7 @@ CREATE PROC ViewFeedbacksAddedByStudentsOnMyCourse
 AS
 SELECT *
 FROM Feedback f INNER JOIN InstructorTeachCourse i ON f.cid = i.cid
-WHERE f.cid = @cid AND I.id  = @instrId 
+WHERE f.cid = @cid AND I.instid  = @instrId 
 
 GO;
 CREATE PROC calculateFinalGrade
@@ -288,6 +290,7 @@ BEGIN
 END;
 
 GO;
+
 CREATE PROC userLogin
 @ID INT,
 @password VARCHAR(20),
@@ -303,24 +306,27 @@ BEGIN
     SET @Success = 1
     PRINT CONCAT('Success : ' , @Success)
     IF EXISTS(
-        SELECT u.*
-        FROM Users u INNER JOIN Instructor i on u.id = i.id
+        SELECT i.*
+        FROM  Instructor i
+        WHERE i.id = @ID 
     )
     BEGIN
         SET @Type = 0
         PRINT CONCAT('Type : ' , @Type)
     END;
     IF EXISTS(
-        SELECT u.*
-        FROM Users u INNER JOIN Admin a on u.id = a.id
+        SELECT a.*
+        FROM  Admin a
+        WHERE a.id =@ID
     )
     BEGIN
         SET @Type = 1
         PRINT CONCAT('Type : ' , @Type)
     END;
     IF EXISTS(
-        SELECT u.*
-        FROM Users u INNER JOIN Student s on u.id = s.id
+        SELECT s.*
+        FROM Student s 
+        WHERE s.id = @ID
     )
     BEGIN
         SET @Type = 2
@@ -378,7 +384,7 @@ CREATE PROC courseInformation
 AS
 SELECT c.* , u.firstName , u.lastName
 FROM Course c INNER JOIN Users u ON c.instructorId = u.id
-where id = @id
+where c.id = @id
 
 GO;
 CREATE PROC enrollInCourse
@@ -408,7 +414,7 @@ CREATE PROC viewPromocode
 @sid INT
 AS
 SELECT p.*
-FROM Promocode p INNER JOIN StudentHasPromcode sp ON sp.code = p.code
+FROM Promocode p INNER JOIN StudentHasPromocode sp ON sp.code = p.code
 WHERE sp.sid = @sid
 
 GO;

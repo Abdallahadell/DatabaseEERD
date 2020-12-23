@@ -1,7 +1,3 @@
-CREATE DATABASE Project;
-
-USE Project;
-
 CREATE TABLE Users(
     id INT PRIMARY KEY IDENTITY,
     firstName VARCHAR(20),
@@ -20,9 +16,10 @@ CREATE TABLE UserMobileNumber(
 
 CREATE TABLE Student (
     id INT PRIMARY KEY,
-    gpa DECIMAL(10, 2),
+    gpa DECIMAL(10, 2) default 0.0,
     FOREIGN KEY (id) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
 );
+
 
 CREATE TABLE CreditCard (
     number INT PRIMARY KEY,
@@ -63,7 +60,7 @@ CREATE TABLE StudentHasPromocode(
   
 CREATE TABLE Instructor(
     ID INT PRIMARY KEY,
-    Rating INT,
+    Rating DECIMAL(10, 2) default 0.0,
     FOREIGN KEY (ID) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
 )
 
@@ -158,6 +155,5 @@ CREATE TABLE StudentTakeAssignment(
     grade DECIMAL(10, 2),
     PRIMARY KEY(sid, cid, assignmentNumber, assignmentType, grade),
     FOREIGN KEY(sid) REFERENCES Student ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY(cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY(assignmentNumber, assignmentType) REFERENCES Assignment(number, type) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY(cid,assignmentNumber, assignmentType) REFERENCES Assignment(cid,number, type) ON DELETE CASCADE ON UPDATE CASCADE
 );
