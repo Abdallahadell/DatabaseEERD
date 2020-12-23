@@ -1,3 +1,4 @@
+USE Project;
 CREATE TABLE Users(
     id INT PRIMARY KEY IDENTITY,
     firstName VARCHAR(20),
@@ -6,20 +7,19 @@ CREATE TABLE Users(
     gender BIT,
     email VARCHAR(40),
     address VARCHAR(40)
-)
+);
 
 CREATE TABLE UserMobileNumber(
     id INT PRIMARY KEY,
     mobileNumber VARCHAR(20),
     FOREIGN KEY (id) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
-)
+);
 
 CREATE TABLE Student (
     id INT PRIMARY KEY,
-    gpa DECIMAL(10, 2) default 0.0,
+    gpa DECIMAL(10, 2),
     FOREIGN KEY (id) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
 );
-
 
 CREATE TABLE CreditCard (
     number INT PRIMARY KEY,
@@ -39,7 +39,7 @@ CREATE TABLE StudentAddCreditCard (
 CREATE TABLE Admin(
     id INT PRIMARY KEY,
     FOREIGN KEY (id) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
-)
+);
 
 CREATE TABLE Promocode(
     code VARCHAR(6) PRIMARY KEY,
@@ -47,8 +47,8 @@ CREATE TABLE Promocode(
     expiryDate DATE,
     discountAmount INT,
     adminId INT,
-    FOREIGN KEY(adminId) REFERENCES Admin ON DELETE CASCADE ON UPDATE CASCADE
-)
+    FOREIGN KEY (adminId) REFERENCES Admin ON DELETE CASCADE ON UPDATE CASCADE
+);
 
 CREATE TABLE StudentHasPromocode(
     sid INT,
@@ -56,13 +56,13 @@ CREATE TABLE StudentHasPromocode(
     PRIMARY KEY(sid, code),
     FOREIGN KEY (sid) REFERENCES Student,
     FOREIGN KEY (code) REFERENCES Promocode ON DELETE CASCADE ON UPDATE CASCADE
-)
+);
   
 CREATE TABLE Instructor(
     ID INT PRIMARY KEY,
-    Rating DECIMAL(10, 2) default 0.0,
+    Rating INT,
     FOREIGN KEY (ID) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
-)
+);
 
 CREATE TABLE StudentRateInstructor(
     sid INT,
@@ -71,7 +71,7 @@ CREATE TABLE StudentRateInstructor(
     PRIMARY KEY (sid, instId),
     FOREIGN KEY (sid) REFERENCES Student,
     FOREIGN KEY (instId) REFERENCES Instructor
-)
+);
 
 CREATE TABLE Course(
     id INT PRIMARY KEY IDENTITY NOT NULL,
@@ -93,7 +93,7 @@ CREATE TABLE InstructorTeachCourse(
     PRIMARY KEY (instId, cid),
     FOREIGN KEY (instId) REFERENCES Instructor ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE
-)
+);
 
 CREATE TABLE StudentTakeCourse (
     sid INT,
@@ -119,9 +119,9 @@ CREATE TABLE StudentCertifyCourse (
 CREATE TABLE CoursePrerequisiteCourse(
     cid INT,
     prerequisiteId INT,
-    PRIMARY KEY(cid, prerequisiteId),
-    FOREIGN KEY(cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY(prerequisiteId) REFERENCES Course
+    PRIMARY KEY (cid, prerequisiteId),
+    FOREIGN KEY (cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (prerequisiteId) REFERENCES Course
 );
 
 CREATE TABLE Feedback(
@@ -130,21 +130,21 @@ CREATE TABLE Feedback(
     comments VARCHAR(100),
     numberOfLikes INT,
     sid INT,
-    PRIMARY KEY(number, cid),
-    FOREIGN KEY(cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY(sid) REFERENCES Student ON DELETE CASCADE ON UPDATE CASCADE
+    PRIMARY KEY (number, cid),
+    FOREIGN KEY (cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (sid) REFERENCES Student ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE Assignment(
     cid INT,
     number INT,
     type VARCHAR(50) ,
-    fullGrade DECIMAL,
-    weight DECIMAL,
+    fullGrade DECIMAL(10,2),
+    weight DECIMAL(10,2),
     deadline DATETIME not null,
     content VARCHAR(100),
-    PRIMARY KEY(cid, number, type),
-    FOREIGN KEY(cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE
+    PRIMARY KEY (cid, number, type),
+    FOREIGN KEY (cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE StudentTakeAssignment(
@@ -153,7 +153,7 @@ CREATE TABLE StudentTakeAssignment(
     assignmentNumber INT,
     assignmentType VARCHAR(50),
     grade DECIMAL(10, 2),
-    PRIMARY KEY(sid, cid, assignmentNumber, assignmentType, grade),
-    FOREIGN KEY(sid) REFERENCES Student ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY(cid,assignmentNumber, assignmentType) REFERENCES Assignment(cid,number, type) ON DELETE CASCADE ON UPDATE CASCADE
+    PRIMARY KEY (sid, cid, assignmentNumber, assignmentType, grade),
+    FOREIGN KEY (sid) REFERENCES Student ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (cid, assignmentNumber, assignmentType) REFERENCES Assignment(cid, number, type) ON DELETE CASCADE ON UPDATE CASCADE
 );
