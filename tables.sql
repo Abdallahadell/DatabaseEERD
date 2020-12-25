@@ -1,4 +1,3 @@
-USE Project;
 CREATE TABLE Users(
     id INT PRIMARY KEY IDENTITY,
     firstName VARCHAR(20),
@@ -10,19 +9,20 @@ CREATE TABLE Users(
 );
 
 CREATE TABLE UserMobileNumber(
-    id INT PRIMARY KEY,
+    id INT,
     mobileNumber VARCHAR(20),
+    PRIMARY KEY (id, mobileNumber), 
     FOREIGN KEY (id) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE Student (
     id INT PRIMARY KEY,
-    gpa DECIMAL(10, 2),
+    gpa DECIMAL(10, 2) DEFAULT 0,
     FOREIGN KEY (id) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE CreditCard (
-    number INT PRIMARY KEY,
+    number VARCHAR(20) PRIMARY KEY,
     cardHolderName VARCHAR(50),
     expiryDate DATETIME,
     cvv VARCHAR(3)
@@ -30,7 +30,7 @@ CREATE TABLE CreditCard (
 
 CREATE TABLE StudentAddCreditCard (
     sid INT,
-    creditCardNumber INT,
+    creditCardNumber VARCHAR(20),
     PRIMARY KEY (sid, creditCardNumber),
     FOREIGN KEY (sid) REFERENCES Student ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (creditCardNumber) REFERENCES CreditCard ON DELETE CASCADE ON UPDATE CASCADE
@@ -57,17 +57,17 @@ CREATE TABLE StudentHasPromocode(
     FOREIGN KEY (sid) REFERENCES Student,
     FOREIGN KEY (code) REFERENCES Promocode ON DELETE CASCADE ON UPDATE CASCADE
 );
-  
+ 
 CREATE TABLE Instructor(
     ID INT PRIMARY KEY,
-    Rating INT,
+    Rating DECIMAL(10, 2) DEFAULT 0,
     FOREIGN KEY (ID) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE StudentRateInstructor(
     sid INT,
     instId INT,
-    rate INT,
+    rate DECIMAL(10, 2),
     PRIMARY KEY (sid, instId),
     FOREIGN KEY (sid) REFERENCES Student,
     FOREIGN KEY (instId) REFERENCES Instructor
@@ -128,7 +128,7 @@ CREATE TABLE Feedback(
     cid INT,
     number INT IDENTITY NOT NULL,
     comments VARCHAR(100),
-    numberOfLikes INT,
+    numberOfLikes INT DEFAULT 0,
     sid INT,
     PRIMARY KEY (number, cid),
     FOREIGN KEY (cid) REFERENCES Course ON DELETE CASCADE ON UPDATE CASCADE,
@@ -152,8 +152,9 @@ CREATE TABLE StudentTakeAssignment(
     cid INT,
     assignmentNumber INT,
     assignmentType VARCHAR(50),
-    grade DECIMAL(10, 2),
+    grade DECIMAL(10, 2) DEFAULT 0,
     PRIMARY KEY (sid, cid, assignmentNumber, assignmentType, grade),
     FOREIGN KEY (sid) REFERENCES Student ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (cid, assignmentNumber, assignmentType) REFERENCES Assignment(cid, number, type) ON DELETE CASCADE ON UPDATE CASCADE
 );
+/*info*/

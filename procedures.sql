@@ -12,7 +12,8 @@ CREATE PROC studentRegister
         SET @id = SCOPE_IDENTITY() 
         INSERT INTO Student(id)
         VALUES(@id)
-
+        INSERT INTO UserMobileNumber(id, mobileNumber)
+        VALUES(@id, '0')
 GO;
 
 CREATE PROC InstructorRegister
@@ -23,12 +24,14 @@ CREATE PROC InstructorRegister
 @gender BIT,
 @address VARCHAR(10)
 AS
-    INSERT INTO Users(first_name, last_name, password, gender, email, address)
+    INSERT INTO Users(firstName, lastName, password, gender, email, address)
     VALUES(@first_name, @last_name, @password, @gender, @email, @address)
     DECLARE @id INT
     SET @id = SCOPE_IDENTITY() 
     INSERT INTO Instructor(id)
     VALUES(@id)
+    INSERT INTO UserMobileNumber(id, mobileNumber)
+    VALUES(@id, '0')
 
 GO;
 
@@ -128,9 +131,12 @@ CREATE PROC InstAddCourse
 @price DECIMAL(6,2),
 @instructorId INT
 AS
-    INSERT INTO Course(creditHours,name,price,instructorId)
-    VALUES(@creditHours,@name,@price,@instructorId)
-
+INSERT INTO Course(creditHours,name,price,instructorId)
+VALUES(@creditHours,@name,@price,@instructorId)
+DECLARE @id INT
+SET @id = SCOPE_IDENTITY()
+INSERT INTO InstructorTeachCourse(instId, cid)
+VALUES(@instructorId, @id)
 
 GO; 
 
@@ -172,7 +178,7 @@ AS
     INSERT INTO CoursePrerequisiteCourse(cid,prerequisiteId)
     VALUES(@cid,@prerequisiteId)
 
-    GO;
+GO;
 
 CREATE PROC DefineAssignmentOfCourseOfCertianType
 @instId INT,
@@ -199,7 +205,7 @@ GO;
 CREATE PROC updateInstructorRate
 @insid INT
 AS
-    DECLARE @totalRating SMALLINT
+    DECLARE @totalRating DECIMAL(10,2)
     SELECT @totalRating = AVG(rate)
     FROM StudentRateInstructor
     WHERE instId = @insid
@@ -209,14 +215,23 @@ AS
     
 GO;
 
+CREATE PROC ViewInstructorProfile
+@instrId INT
+AS
+    EXEC updateInstructorRate @instrId
+    SELECT u.firstName, u.lastName, u.gender, u.email, u.address, i.Rating, m.mobileNumber
+    FROM Instructor i INNER JOIN Users u ON u.id = i.ID INNER JOIN UserMobileNumber m ON u.id = m.id
+    WHERE i.ID = @instrId AND i.id = m.id
+GO;
+
 CREATE PROC InstructorViewAssignmentsStudents
 @instrId INT,
 @cid INT
 AS
     IF EXISTS (
         SELECT *
-        FROM Course
-        WHERE instructorId = @instrId AND id = @cid
+        FROM InstructorTeachCourse
+        WHERE instId = @instrId AND cid = @cid
     )
     BEGIN
         SELECT *
@@ -253,12 +268,13 @@ CREATE PROC InstructorgradeAssignmentOfAStudent
 AS
     IF EXISTS(
         SELECT * 
-        FROM Course
-        WHERE instructorId = @instrId AND id = @cid 
+        FROM InstructorTeachCourse
+        WHERE instId = @instrId AND cid = @cid 
         )
     BEGIN
-        INSERT INTO StudentTakeAssignment(sid, cid, assignmentNumber, assignmentType, grade)
-        VALUES(@sid, @cid, @assignmentNumber, @type, @grade)
+        UPDATE StudentTakeAssignment
+        SET grade = @grade
+        WHERE sid = @sid AND cid = @cid AND assignmentNumber = @assignmentNumber AND assignmentType = @type
     END;
 
 GO;
@@ -280,12 +296,12 @@ CREATE PROC calculateFinalGrade
 AS
     IF EXISTS(
         SELECT * 
-        FROM Course
-        WHERE instructorId = @insId and id = @cid
+        FROM StudentTakeCourse
+        WHERE instId = @insId and cid = @cid
         )
     BEGIN
-    DECLARE @sum DECIMAL 
-        SELECT @sum = SUM(grade/fullGrade * weight) 
+    DECLARE @sum DECIMAL(10,2) 
+        SELECT @sum = SUM((x.grade/a.fullGrade) * weight) 
         FROM StudentTakeAssignment x INNER JOIN Assignment a ON x.cid = a.cid 
         WHERE x.sid = @sid AND a.cid = @cid
     END;
@@ -303,8 +319,8 @@ CREATE PROC InstructorIssueCertificateToStudent
 AS
     IF EXISTS(
         SELECT * 
-        FROM Course 
-        WHERE instructorId = @insId and id = @cid
+        FROM StudentTakeCourse 
+        WHERE instId = @insId and cid = @cid
         )
     BEGIN
         INSERT INTO StudentCertifyCourse(sid,cid,issueDate)
@@ -388,10 +404,47 @@ CREATE PROC editMyProfile
 @firstName VARCHAR(10),
 @lastName VARCHAR(10),
 @password VARCHAR(10),
-@gender BINARY,
+@gender BIT,
 @email VARCHAR(10),
 @address VARCHAR(10)
 AS
+ 
+    IF @firstName IS NULL
+        BEGIN
+             SELECT @firstName = u.firstName
+             FROM Users u
+             WHERE u.id = @id 
+        END;
+    IF @lastName IS NULL
+       BEGIN
+             SELECT @lastName = u.lastName
+             FROM Users u
+             WHERE u.id = @id 
+        END;
+    IF @password IS NULL
+       BEGIN
+             SELECT @password = u.password
+             FROM Users u
+             WHERE u.id = @id 
+        END;
+    IF @gender IS NULL
+       BEGIN
+             SELECT @gender = u.gender
+             FROM Users u
+             WHERE u.id = @id 
+        END;
+    IF @email IS NULL
+       BEGIN
+             SELECT @email = u.email
+             FROM Users u
+             WHERE u.id = @id 
+        END;
+    IF @address IS NULL
+       BEGIN
+             SELECT @address = u.address
+             FROM Users u
+             WHERE u.id = @id 
+        END;
     UPDATE Users
     SET firstName = @firstName , lastName = @lastName , password = @password , gender = @gender , email = @email , address = @address
     WHERE id = @id;
@@ -411,7 +464,7 @@ CREATE PROC courseInformation
 AS
     SELECT c.* , u.firstName , u.lastName
     FROM Course c INNER JOIN Users u ON c.instructorId = u.id
-    where c.id = @id
+    WHERE c.id = @id
 
 GO;
 
@@ -425,6 +478,7 @@ AS
 
 GO;
 
+
 CREATE PROC addCreditCard
 @sid INT,
 @number VARCHAR(15),
@@ -432,12 +486,31 @@ CREATE PROC addCreditCard
 @expiryDate DATETIME,
 @cvv VARCHAR(3)
 AS
-    INSERT INTO CreditCard(number, cardHolderName, expiryDate, cvv)
-    VALUES (@number , @cardHolderName , @expiryDate , @cvv)
-    SET @sid = SCOPE_IDENTITY()
-    INSERT INTO StudentAddCreditCard(sid , creditCardNumber)
-    VALUES (@sid , @number)
-
+    IF EXISTS(
+        SELECT *
+        FROM StudentAddCreditCard
+        WHERE sid = @sid
+    )
+    BEGIN
+        PRINT('ALREADY ADDED')
+    END;
+    ELSE IF EXISTS(
+        SELECT *
+        FROM CreditCard
+        WHERE number = @number
+    )
+    BEGIN
+        INSERT INTO StudentAddCreditCard(sid , creditCardNumber)
+        VALUES (@sid , @number)
+    END;
+    ELSE
+    BEGIN
+       INSERT INTO CreditCard(number, cardHolderName, expiryDate, cvv)
+       VALUES (@number , @cardHolderName , @expiryDate , @cvv)
+       INSERT INTO StudentAddCreditCard(sid , creditCardNumber)
+       VALUES (@sid , @number)
+    END;
+    
 GO;
 
 CREATE PROC viewPromocode
@@ -478,9 +551,9 @@ GO;
 
 CREATE PROC viewAssign
 @courseId INT,
-@Sid VARCHAR(10)
+@Sid INT
 AS
-    SELECT a.content
+    SELECT a.*
     FROM Assignment a INNER JOIN StudentTakeAssignment s on a.cid = s.cid
     WHERE a.cid = @courseId AND s.sid = @Sid
 
@@ -492,8 +565,8 @@ CREATE PROC submitAssign
 @sid INT,
 @cid INT
 AS
-    INSERT INTO StudentTakeAssignment(sid , cid , assignmentNumber , assignmentType)
-    VALUES (@sid , @cid , @assignnumber , @assignType)
+    INSERT INTO StudentTakeAssignment(sid , cid , assignmentNumber , assignmentType, grade)
+    VALUES (@sid , @cid , @assignnumber , @assignType, 0)
 
 GO;
 
@@ -519,6 +592,7 @@ AS
     SELECT @finalgrade = grade
     FROM StudentTakeCourse
     WHERE cid = @cid AND sid = @sid
+    PRINT @finalGrade
 
 GO;
 
@@ -549,3 +623,5 @@ AS
     SELECT *
     FROM StudentCertifyCourse
     WHERE sid = @sid AND cid = @cid
+
+/*info*/
